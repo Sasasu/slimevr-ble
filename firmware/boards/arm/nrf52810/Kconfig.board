@@ -1,0 +1,7 @@
+# nRF52810 board configuration
+
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_NRF52810
+	bool "nRF52810"
+	depends on SOC_NRF52810_QFAA

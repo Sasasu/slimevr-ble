@@ -1,0 +1,17 @@
+manifest:
+  remotes:
+    - name: sasasu
+      url-base: https://github.com/Sasasu
+    - name: ncs
+      url-base: https://github.com/nrfconnect
+
+  self:
+    path: firmware
+    west-commands: scripts/west-commands.yml
+
+  projects:
+    - name: nrf
+      remote: ncs
+      repo-path: sdk-nrf
+      revision: main
+      import: true

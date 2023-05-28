@@ -1,0 +1,40 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&pinctrl {
+	uart0_default: uart0_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 22)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 23)>;
+			bias-pull-up;
+		};
+	};
+
+	uart0_sleep: uart0_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 22)>, <NRF_PSEL(UART_RX, 0, 23)>;
+			low-power-enable;
+		};
+	};
+
+	spi0_default: spi0_default {
+		group1 {
+			// 0.16 = nCS
+			// 0.11 = INT
+			// 0.12 = FSYNC
+			psels = <NRF_PSEL(SPIM_MOSI, 0, 13)>, <NRF_PSEL(SPIM_MISO, 0, 14)>,
+					<NRF_PSEL(SPIM_SCK, 0, 18)>;
+		};
+	};
+
+	spi0_sleep: spi0_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_MOSI, 0, 13)>, <NRF_PSEL(SPIM_MISO, 0, 14)>,
+					<NRF_PSEL(SPIM_SCK, 0, 18)>;
+			low-power-enable;
+		};
+	};
+};
