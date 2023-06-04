@@ -63,11 +63,20 @@
 };
 
 &spi0 {
-	compatible = "nordic,nrf-spi";
+	compatible = "nordic,nrf-spim";
 	status = "okay";
 	pinctrl-0 = <&spi0_default>;
 	pinctrl-1 = <&spi0_sleep>;
 	pinctrl-names = "default", "sleep";
+
+	cs-gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
+
+	icm20948: icm20948@0 {
+		compatible = "vnd,spi-device";
+		reg = <0>;
+		spi-max-frequency = <7000000>;
+		label = "icm20948";
+	};
 };
 
 &flash0 {
