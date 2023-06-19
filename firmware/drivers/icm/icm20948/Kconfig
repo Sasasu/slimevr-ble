@@ -1,0 +1,6 @@
+config ICM20948
+	bool "ICM20948"
+	default n
+	depends on DT_HAS_SLIMEVR_ICM20948_ENABLED
+	help
+	  Enable ICM20948

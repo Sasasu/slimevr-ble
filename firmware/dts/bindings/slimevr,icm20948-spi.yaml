@@ -1,0 +1,6 @@
+description: |
+  ICM20948 in SPI mode
+
+include: spi-device.yaml
+
+compatible: "slimevr,icm20948"
