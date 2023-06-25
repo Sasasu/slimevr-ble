@@ -13,9 +13,6 @@
 	chosen {
 		zephyr,console = &uart0;
 		zephyr,shell-uart = &uart0;
-		zephyr,uart-mcumgr = &uart0;
-		zephyr,bt-mon-uart = &uart0;
-		zephyr,bt-c2h-uart = &uart0;
 		zephyr,sram = &sram0;
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &slot0_partition;
@@ -32,6 +29,24 @@
 	aliases {
 		pwm-led0 = &pwm_led0;
 		watchdog0 = &wdt0;
+	};
+
+	vbatt: vbatt {
+		compatible = "slimevr,adc-fuel-gauge";
+		status = "okay";
+
+		io-channels = <&adc 0>;
+		channel-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		output-ohms = <10000>;
+		full-ohms = <(36000 + 10000)>;
+		vref-mv = <1800>;
+	};
+
+	blesink {
+		compatible = "slimevr,blesink";
+		status = "okay";
+
+		batt = <&vbatt>;
 	};
 };
 
@@ -105,4 +120,3 @@
 		};
 	};
 };
-

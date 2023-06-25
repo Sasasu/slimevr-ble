@@ -1,0 +1,6 @@
+config BLESINK
+	bool "BLESINK"
+	default n
+	depends on DT_HAS_SLIMEVR_BLESINK_ENABLED
+	help
+	  Enable Bluetooth output

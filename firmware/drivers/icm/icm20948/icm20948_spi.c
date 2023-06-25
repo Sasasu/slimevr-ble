@@ -1,14 +1,11 @@
 #include "./icm20948.h"
 #include "icm20948_reg.h"
-
-#include "zephyr/device.h"
-#include "zephyr/drivers/sensor.h"
-#include "zephyr/sys/util.h"
-#include <errno.h>
+#include "zephyr/logging/log.h"
+#include <stdint.h>
 
 #define DT_DRV_COMPAT slimevr_icm20948
 
-LOG_MODULE_DECLARE(ICM20948, CONFIG_ICM20948_LOG_LEVEL);
+LOG_MODULE_REGISTER(icm20948);
 
 static int icm20948_spi_read_byte(const struct device *dev, uint8_t reg,
                                   uint8_t *out) {
@@ -32,7 +29,8 @@ static int icm20948_spi_read_byte(const struct device *dev, uint8_t reg,
 
   int e = spi_transceive_dt(&config->spi, &tx, &rx);
 
-  if (!e) {
+  if (e) {
+    LOG_ERR("spi_transceive_dt %d", e);
     return e;
   }
 
@@ -152,9 +150,11 @@ static int icm20948_init(const struct device *dev) {
   icm20948_spi_read_byte(dev, WHO_AM_I_B0, &out);
 
   if (out != ICM20948_ID) {
-    LOG_ERR("not find ICM20948");
+    LOG_ERR("not find ICM20948 %x", out);
     return -ENODEV;
   }
+
+  LOG_INF("find ICM20948, start initialize");
 
   // disable I2C interface
   ICM20948_USER_CTRL_t x = {.I2C_IF_DIS = 1};
@@ -170,10 +170,7 @@ static const struct sensor_driver_api icm20948_driver_api = {
     .trigger_set = icm20948_trigger_set,
 };
 
-/* device defaults to spi mode 0/3 support */
-#define ICM20948_SPI_CFG                                                       \
-  SPI_OP_MODE_MASTER | SPI_MODE_CPOL | SPI_MODE_CPHA | SPI_WORD_SET(8) |       \
-      SPI_TRANSFER_MSB
+#define ICM20948_SPI_CFG SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)
 
 #define INIT_ICM20948_INST(inst)                                               \
   static struct icm20948_data icm20948_data_##inst;                            \
@@ -184,8 +181,6 @@ static const struct sensor_driver_api icm20948_driver_api = {
                                                                                \
   SENSOR_DEVICE_DT_INST_DEFINE(inst, icm20948_init, NULL,                      \
                                &icm20948_data_##inst, &icm20948_cfg_##inst,    \
-                               POST_KERNEL, 90, &icm20948_driver_api);         \
-                                                                               \
-  LOG_INSTANCE_REGISTER(ICM20948, icm20948_##int, CONFIG_ICM20948_LOG_LEVEL);
+                               APPLICATION, 90, &icm20948_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(INIT_ICM20948_INST)

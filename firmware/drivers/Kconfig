@@ -1,3 +1,4 @@
 menu "Drivers"
 rsource "icm/Kconfig"
+rsource "slimevr/Kconfig"
 endmenu

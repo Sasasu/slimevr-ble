@@ -1,0 +1,11 @@
+description: Bluetooth output with Slimevr protocol
+
+compatible: "slimevr,blesink"
+
+include: base.yaml
+
+properties:
+  batt:
+    type: phandle
+    required: true
+    description: Battery fuel gauge
