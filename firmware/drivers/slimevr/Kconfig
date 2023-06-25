@@ -1,1 +1,2 @@
 rsource "blesink/Kconfig"
+rsource "battery/Kconfig"

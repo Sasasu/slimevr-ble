@@ -1,0 +1,10 @@
+config BATTERY
+	bool "Battery"
+	default y
+
+config ADC_FUEL_GAUGE
+	bool "ADC_FUEL_GAUGE"
+	default n
+	depends on DT_HAS_SLIMEVR_ADC_FUEL_GAUGE_ENABLED
+	help
+	  Enable ADC based fuel gauge

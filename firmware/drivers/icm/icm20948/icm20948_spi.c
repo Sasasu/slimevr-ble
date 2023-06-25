@@ -1,7 +1,13 @@
+#include <zephyr/device.h>
+
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/spi.h>
+
+#include <zephyr/logging/log.h>
+
 #include "./icm20948.h"
 #include "icm20948_reg.h"
-#include "zephyr/logging/log.h"
-#include <stdint.h>
 
 #define DT_DRV_COMPAT slimevr_icm20948
 
@@ -173,7 +179,7 @@ static const struct sensor_driver_api icm20948_driver_api = {
 #define ICM20948_SPI_CFG SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8)
 
 #define INIT_ICM20948_INST(inst)                                               \
-  static struct icm20948_data icm20948_data_##inst;                            \
+  static struct icm20948_data icm20948_data_##inst = {};                       \
   static const struct icm20948_config icm20948_cfg_##inst = {                  \
       .spi = SPI_DT_SPEC_INST_GET(inst, ICM20948_SPI_CFG, 0),                  \
       .gpio_int = GPIO_DT_SPEC_INST_GET_OR(inst, int_gpios, {0}),              \
@@ -181,6 +187,6 @@ static const struct sensor_driver_api icm20948_driver_api = {
                                                                                \
   SENSOR_DEVICE_DT_INST_DEFINE(inst, icm20948_init, NULL,                      \
                                &icm20948_data_##inst, &icm20948_cfg_##inst,    \
-                               APPLICATION, 90, &icm20948_driver_api);
+                               APPLICATION, 80, &icm20948_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(INIT_ICM20948_INST)

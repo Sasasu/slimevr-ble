@@ -31,22 +31,11 @@
 		watchdog0 = &wdt0;
 	};
 
-	vbatt: vbatt {
-		compatible = "slimevr,adc-fuel-gauge";
-		status = "okay";
-
-		io-channels = <&adc 0>;
-		channel-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
-		output-ohms = <10000>;
-		full-ohms = <(36000 + 10000)>;
-		vref-mv = <1800>;
-	};
-
 	blesink {
 		compatible = "slimevr,blesink";
 		status = "okay";
 
-		batt = <&vbatt>;
+		battery = <&battery>;
 	};
 };
 
@@ -66,6 +55,30 @@
 
 &adc {
 	status = "okay";
+
+	#io-channel-cells = <1>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_6";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_AIN0>; /* P0.02 */
+		zephyr,resolution = <12>;
+	};
+
+	battery: battery {
+		compatible = "slimevr,adc-fuel-gauge";
+		status = "okay";
+
+		io-channels = <&adc 0>;
+		output-ohms = <10000>;
+		full-ohms = <(36000 + 10000)>;
+		battery-full-mv = <4200>;
+		battery-empty-mv = <3000>;
+	};
 };
 
 &uart0 {

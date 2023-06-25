@@ -1,4 +1,8 @@
+#include "zephyr/drivers/sensor.h"
+#include "zephyr/sys/time_units.h"
+#include <stdint.h>
 #include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
@@ -11,6 +15,14 @@
 
 LOG_MODULE_REGISTER(blesink);
 
+struct blesink_dev_data {
+  uint8_t battery_level;
+};
+
+struct blesink_dev_cfg {
+  const struct device *battery;
+};
+
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
 
@@ -20,6 +32,25 @@ static const struct bt_data ad[] = {
                   // Physical Activity Monitor Service
                   BT_UUID_16_ENCODE(BT_UUID_PAMS_VAL)),
 };
+
+static int blesink_read_battery_level(const struct device *dev) {
+  const struct blesink_dev_cfg *config = dev->config;
+  struct blesink_dev_data *data = dev->data;
+  struct sensor_value temp;
+
+  int err = sensor_sample_fetch(config->battery);
+  if (err < 0)
+    return err;
+
+  err = sensor_channel_get(config->battery, SENSOR_CHAN_GAUGE_STATE_OF_CHARGE,
+                           &temp);
+  if (err < 0)
+    return err;
+
+  data->battery_level = temp.val1;
+
+  return 0;
+}
 
 static void bt_connected(struct bt_conn *conn, uint8_t err) {
   if (err) {
@@ -56,7 +87,7 @@ static void bt_ready(int err) {
 }
 
 static int blesink_init(const struct device *dev) {
-  ARG_UNUSED(dev);
+  const struct blesink_dev_cfg *config = dev->config;
 
   int err = bt_enable(bt_ready);
   if (err) {
@@ -64,17 +95,21 @@ static int blesink_init(const struct device *dev) {
     return 0;
   }
 
-  return 0;
+  if (!device_is_ready(config->battery)) {
+    LOG_WRN("battery device no ready");
+    return -ENODEV;
+  }
+
+  return blesink_read_battery_level(dev);
 }
-
-struct blesink_dev_data {};
-
-struct blesink_dev_cfg {};
 
 #define CREATE_BLESINK_DEVICE(inst)                                            \
   static struct blesink_dev_data blesink_data_##inst = {};                     \
-  static const struct blesink_dev_cfg blesink_cfg_##inst = {};                 \
+  static const struct blesink_dev_cfg blesink_cfg_##inst = {                   \
+      .battery = DEVICE_DT_GET(DT_INST_PROP(inst, battery)),                   \
+  };                                                                           \
+                                                                               \
   DEVICE_DT_INST_DEFINE(inst, blesink_init, NULL, &blesink_data_##inst,        \
-                        &blesink_cfg_##inst, APPLICATION, 90, NULL);           \
+                        &blesink_cfg_##inst, APPLICATION, 90, NULL);
 
 DT_INST_FOREACH_STATUS_OKAY(CREATE_BLESINK_DEVICE)

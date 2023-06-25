@@ -10,9 +10,10 @@ include: base.yaml
 
 properties:
   io-channels:
+    type: phandle-array
     required: true
     description: |
-      Channels available with this divider configuration.
+      Channel available with this divider configuration.
 
   output-ohms:
     type: int
@@ -26,13 +27,12 @@ properties:
     description: |
       Resistance of the full path through the voltage divider.
 
-  vref-mv:
+  battery-full-mv:
     type: int
     required: true
-    description: |
-      v-ref of ADC in millivolts
+    description: Max charge voltage
 
-  channel-gpios:
-    type: phandle-array
-    description: |
-      gpio pin for ADC
+  battery-empty-mv:
+    type: int
+    required: true
+    description: Typical end-of-discharge

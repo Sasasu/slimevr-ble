@@ -1,10 +1,6 @@
-#include <zephyr/device.h>
-
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/spi.h>
-
-#include <zephyr/logging/log.h>
 
 struct icm20948_data {
   sensor_trigger_handler_t data_ready_handler;
