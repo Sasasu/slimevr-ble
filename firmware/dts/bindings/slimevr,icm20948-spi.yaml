@@ -1,6 +1,13 @@
-description: |
-  ICM20948 in SPI mode
-
-include: spi-device.yaml
+description: ICM20948 motion tracking device
 
 compatible: "slimevr,icm20948"
+
+include: [spi-device.yaml]
+
+properties:
+  int-gpios:
+    type: phandle-array
+    description: |
+       The INT signal default configuration is active-high. The
+       property value should ensure the flags properly describe the
+       signal that is presented to the driver.
