@@ -1,5 +1,7 @@
 #include "zephyr/drivers/sensor.h"
+#include "zephyr/kernel.h"
 #include "zephyr/sys/time_units.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -21,6 +23,9 @@ struct blesink_dev_data {
   const struct blesink_dev_cfg *cfg;
 
   uint8_t battery_level;
+
+  struct k_work work;
+  struct k_timer timer;
 };
 
 struct blesink_dev_cfg {
@@ -130,7 +135,6 @@ static void bt_ready(int err) {
 
 static int blesink_init(const struct device *dev) {
   const struct blesink_dev_cfg *config = dev->config;
-  struct blesink_dev_data *data = dev->data;
 
   int err = bt_enable(bt_ready);
   if (err) {
@@ -143,11 +147,13 @@ static int blesink_init(const struct device *dev) {
     return -ENODEV;
   }
 
-  // TODO
-  while (true) {
+  // TODO move to main thread. use device API
+  while (false) {
     k_sleep(K_SECONDS(1));
     blesink_update_battery_level(dev);
   }
+
+  return blesink_update_battery_level(dev);
 }
 
 #define CREATE_BLESINK_DEVICE(inst)                                            \
