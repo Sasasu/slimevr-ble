@@ -7,6 +7,8 @@
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/bluetooth/gap.h>
+#include <zephyr/bluetooth/gatt.h>
+#include <zephyr/bluetooth/services/bas.h>
 #include <zephyr/bluetooth/uuid.h>
 
 #include <zephyr/logging/log.h>
@@ -16,6 +18,8 @@
 LOG_MODULE_REGISTER(blesink);
 
 struct blesink_dev_data {
+  const struct blesink_dev_cfg *cfg;
+
   uint8_t battery_level;
 };
 
@@ -33,12 +37,13 @@ static const struct bt_data ad[] = {
                   BT_UUID_16_ENCODE(BT_UUID_PAMS_VAL)),
 };
 
-static int blesink_read_battery_level(const struct device *dev) {
+static int blesink_update_battery_level(const struct device *dev) {
   const struct blesink_dev_cfg *config = dev->config;
   struct blesink_dev_data *data = dev->data;
   struct sensor_value temp;
 
-  int err = sensor_sample_fetch(config->battery);
+  int err = sensor_sample_fetch_chan(config->battery,
+                                     SENSOR_CHAN_GAUGE_STATE_OF_CHARGE);
   if (err < 0)
     return err;
 
@@ -49,24 +54,49 @@ static int blesink_read_battery_level(const struct device *dev) {
 
   data->battery_level = temp.val1;
 
-  return 0;
+  return bt_bas_set_battery_level(data->battery_level);
 }
 
 static void bt_connected(struct bt_conn *conn, uint8_t err) {
+  char addr[BT_ADDR_LE_STR_LEN];
+  bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
   if (err) {
-    LOG_WRN("Connection failed (err 0x%02x)", err);
+    LOG_WRN("Connection failed with %s (err 0x%02x)", addr, err);
   } else {
-    LOG_INF("Connected");
+    LOG_INF("Connected with %s", addr);
   }
 }
 
 static void bt_disconnected(struct bt_conn *conn, uint8_t reason) {
-  LOG_INF("Disconnected (reason 0x%02x)", reason);
+  char addr[BT_ADDR_LE_STR_LEN];
+  bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+  LOG_INF("Disconnected from %s (reason 0x%02x)", addr, reason);
 }
 
-BT_CONN_CB_DEFINE(conn_callbacks) = {
+static struct bt_conn_cb conn_cb = {
     .connected = bt_connected,
     .disconnected = bt_disconnected,
+};
+
+static void bt_pairing_cancel(struct bt_conn *conn) {
+  char addr[BT_ADDR_LE_STR_LEN];
+  bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+  LOG_INF("bt_pairing_cancel %s", addr);
+};
+
+static void bt_pairing_confirm(struct bt_conn *conn) {
+  char addr[BT_ADDR_LE_STR_LEN];
+  bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
+
+  LOG_INF("bt_pairing_confirm %s", addr);
+};
+
+static struct bt_conn_auth_cb auth_cb = {
+    .cancel = bt_pairing_cancel,
+    .pairing_confirm = bt_pairing_confirm,
 };
 
 static void bt_ready(int err) {
@@ -76,6 +106,18 @@ static void bt_ready(int err) {
   }
 
   LOG_INF("Bluetooth initialized");
+
+  err = bt_conn_auth_cb_register(&auth_cb);
+  if (err) {
+    LOG_WRN("bt_conn_auth_cb_register (err %d)", err);
+    return;
+  }
+
+  bt_conn_cb_register(&conn_cb);
+  if (err) {
+    LOG_WRN("bt_conn_cb (err %d)", err);
+    return;
+  }
 
   err = bt_le_adv_start(BT_LE_ADV_CONN_NAME, ad, ARRAY_SIZE(ad), NULL, 0);
   if (err) {
@@ -88,6 +130,7 @@ static void bt_ready(int err) {
 
 static int blesink_init(const struct device *dev) {
   const struct blesink_dev_cfg *config = dev->config;
+  struct blesink_dev_data *data = dev->data;
 
   int err = bt_enable(bt_ready);
   if (err) {
@@ -100,13 +143,19 @@ static int blesink_init(const struct device *dev) {
     return -ENODEV;
   }
 
-  return blesink_read_battery_level(dev);
+  // TODO
+  while (true) {
+    k_sleep(K_SECONDS(1));
+    blesink_update_battery_level(dev);
+  }
 }
 
 #define CREATE_BLESINK_DEVICE(inst)                                            \
-  static struct blesink_dev_data blesink_data_##inst = {};                     \
   static const struct blesink_dev_cfg blesink_cfg_##inst = {                   \
       .battery = DEVICE_DT_GET(DT_INST_PROP(inst, battery)),                   \
+  };                                                                           \
+  static struct blesink_dev_data blesink_data_##inst = {                       \
+      .cfg = &blesink_cfg_##inst,                                              \
   };                                                                           \
                                                                                \
   DEVICE_DT_INST_DEFINE(inst, blesink_init, NULL, &blesink_data_##inst,        \

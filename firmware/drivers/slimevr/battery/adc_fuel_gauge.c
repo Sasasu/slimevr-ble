@@ -58,6 +58,7 @@ struct adc_fuel_gauge_config {
 
 struct adc_fuel_gauge_data {
   int32_t val;
+  struct adc_sequence sequence;
 };
 
 int adc_fuel_gauge_fetch(const struct device *dev, enum sensor_channel chan) {
@@ -68,13 +69,12 @@ int adc_fuel_gauge_fetch(const struct device *dev, enum sensor_channel chan) {
     return -ENODATA;
   }
 
-  struct adc_sequence sequence = {
-      .buffer = (uint16_t[1]){0},
-      .buffer_size = sizeof(uint16_t),
-  };
+  uint16_t buffer = 0;
+  data->sequence.buffer = &buffer;
+  data->sequence.buffer_size = sizeof(buffer);
 
-  adc_sequence_init_dt(&config->io_channel, &sequence);
-  int err = adc_read(config->io_channel.dev, &sequence);
+  adc_sequence_init_dt(&config->io_channel, &data->sequence);
+  int err = adc_read(config->io_channel.dev, &data->sequence);
   if (err < 0) {
     LOG_WRN("ADC read %d", err);
     return err;
@@ -83,9 +83,9 @@ int adc_fuel_gauge_fetch(const struct device *dev, enum sensor_channel chan) {
   int32_t val_mv;
 
   if (config->io_channel.channel_cfg.differential) {
-    val_mv = (int32_t)(((int16_t *)sequence.buffer)[0]);
+    val_mv = (int32_t)(int16_t)buffer;
   } else {
-    val_mv = (int32_t)(((uint16_t *)sequence.buffer)[0]);
+    val_mv = (int32_t)(uint16_t)buffer;
   }
 
   err = adc_raw_to_millivolts_dt(&config->io_channel, &val_mv);
