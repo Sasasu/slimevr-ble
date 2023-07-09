@@ -3,6 +3,7 @@
 #include "zephyr/sys/time_units.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 
@@ -21,11 +22,7 @@ LOG_MODULE_REGISTER(blesink);
 
 struct blesink_dev_data {
   const struct blesink_dev_cfg *cfg;
-
-  uint8_t battery_level;
-
-  struct k_work work;
-  struct k_timer timer;
+  uint32_t quaternion[3];
 };
 
 struct blesink_dev_cfg {
@@ -44,7 +41,6 @@ static const struct bt_data ad[] = {
 
 static int blesink_update_battery_level(const struct device *dev) {
   const struct blesink_dev_cfg *config = dev->config;
-  struct blesink_dev_data *data = dev->data;
   struct sensor_value temp;
 
   int err = sensor_sample_fetch_chan(config->battery,
@@ -57,9 +53,7 @@ static int blesink_update_battery_level(const struct device *dev) {
   if (err < 0)
     return err;
 
-  data->battery_level = temp.val1;
-
-  return bt_bas_set_battery_level(data->battery_level);
+  return bt_bas_set_battery_level(temp.val1);
 }
 
 static void bt_connected(struct bt_conn *conn, uint8_t err) {
@@ -147,12 +141,6 @@ static int blesink_init(const struct device *dev) {
     return -ENODEV;
   }
 
-  // TODO move to main thread. use device API
-  while (false) {
-    k_sleep(K_SECONDS(1));
-    blesink_update_battery_level(dev);
-  }
-
   return blesink_update_battery_level(dev);
 }
 
@@ -168,3 +156,29 @@ static int blesink_init(const struct device *dev) {
                         &blesink_cfg_##inst, APPLICATION, 90, NULL);
 
 DT_INST_FOREACH_STATUS_OKAY(CREATE_BLESINK_DEVICE)
+
+static void slimevr_pams_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+                                         uint16_t value) {}
+
+static ssize_t slimevr_read_pams(struct bt_conn *conn,
+                                 const struct bt_gatt_attr *attr, void *buf,
+                                 uint16_t len, uint16_t offset) {
+  struct blesink_dev_data data = blesink_data_0;
+
+  uint8_t buffer[1 + sizeof(data.quaternion)];
+  buffer[0] = 0x8a; // magic
+  memcpy(&buffer[1], data.quaternion, sizeof(data.quaternion));
+
+  return bt_gatt_attr_read(conn, attr, buf, len, offset, buffer,
+                           sizeof(buffer));
+}
+
+BT_GATT_SERVICE_DEFINE(pams, BT_GATT_PRIMARY_SERVICE(BT_UUID_PAMS),
+                       BT_GATT_CHARACTERISTIC(BT_UUID_PAMS,
+                                              BT_GATT_CHRC_READ |
+                                                  BT_GATT_CHRC_NOTIFY,
+                                              BT_GATT_PERM_READ,
+                                              slimevr_read_pams, NULL,
+                                              blesink_data_0.quaternion),
+                       BT_GATT_CCC(slimevr_pams_ccc_cfg_changed,
+                                   BT_GATT_PERM_READ | BT_GATT_PERM_WRITE));

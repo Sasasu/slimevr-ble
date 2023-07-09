@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/spi.h>
@@ -7,7 +8,8 @@ struct icm20948_data {
   const struct sensor_trigger *data_ready_trigger;
 
   struct gpio_callback gpio_cb;
-  // TODO 4*32 bytes float data
+
+  int32_t quaternion[3];
 };
 
 struct icm20948_config {
@@ -16,7 +18,6 @@ struct icm20948_config {
 };
 
 enum sensor_channel_icm20948 {
-  __SENSOR_CHAN_DIE_TEMP = SENSOR_CHAN_DIE_TEMP,
   SENSOR_CHAN_GAME_ROTATION_QUAT_X = SENSOR_CHAN_PRIV_START,
   SENSOR_CHAN_GAME_ROTATION_QUAT_Y,
   SENSOR_CHAN_GAME_ROTATION_QUAT_Z,

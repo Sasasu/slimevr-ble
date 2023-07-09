@@ -6,6 +6,7 @@
 #define ICM20948_ID 0xEA
 
 #define IN(x) (((uint8_t *)&x)[0])
+#define OUT(x) (((uint8_t *)(&x)))
 
 #define READ (1 << 7)
 #define WRITE (0 << 7)
@@ -35,6 +36,9 @@ typedef struct {
 } ICM20948_LP_CONFIG_t;
 
 #define PWR_MGMT_1_B0 0x06
+#define ICM20948_MGMT_1_B0_CLKSET_Internal_20Mhz 0x0
+#define ICM20948_MGMT_1_B0_CLKSET_Auto 0x1
+#define ICM20948_MGMT_1_B0_CLKSET_Stops 0x7
 typedef struct {
   uint8_t CLKSEL : 3;
   uint8_t TEMP_DIS : 1;
